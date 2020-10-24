@@ -4,18 +4,18 @@ _El identificador único universal es un número de 128 bits generado de forma a
 
 ## Enunciado del Proyecto 📋
 
-###Parte 1
+(Parte 1)
 _-Existen diferentes técnicas para generar la aleatoriedad, una de ellas está basada en la fecha y hora actual y la mac address del equipo_
 _-En este caso deberá utilizar interrupciones para obtener la fecha y hora actual del equipo y generar un timespan a partir de ello y utilizarlo en la generación de un nuevo UUID._
 _-Como no se tiene acceso a la mac address del equipo deberá seguir las siguientes reglas:
 	-El grupo de los cuatro bits más significativos del séptimo byte deberá iniciar siempre con “1”
 	-El segundo grupo de bits más significativo deberá iniciar con un número aleatorio entre 8,9,A o B en hexadecimal._
 ```
-ccbc9b3b-8805-1979-a6e2-c554eed9f9c7
+CCBC9B3B-8805-1979-A6E2-C554EED9F9C7
 ```
 -La aplicación deberá contar con la opción de generar uno o varios UUIDs.
 
-###Parte 2
+(Parte 2)
 _El generador de UUIDs también deberá contar con un área de validación, la expresión regular utilizada para validar un UUID es la siguiente:_
 
 ```
@@ -64,6 +64,21 @@ _Ingrese el número de la opción según el menú principal_
 2-Validación de UUID
 3-Salir del programa
 ```
+Si elige la opción 1 el programa imprime en pantalla la cadena UUID
+```
+670B9562-B30D-12D5-B827-655787665500  (Ejemplo)
+```
+Si elige la opción 2 el programa esperará que la ingrese uno a uno los caracteres de la cadena UUID. Si el caracater ingresado es aceptado se espera al siguiente caracter a ingresar. Si todos los caracteres ingresados son válidos el programa indica en pantalla que el identificador es válido y retorna al menú.
+```
+670B9562-B3
+-------------------------------
+Identificador UUID aceptado
+```
+Si el caracter  ingresado no es válido, el programa indica que la cadena no es válida y retorna al menú
+```
+Caracter no permitido en UUID
+```
+Para cerrar el programa debe elegir la opción 3.Si ingresa un número distinto a los de las opciones listadas el programa imprime el menú nuevamente.
 
 ## Construido con 🛠️
 * Notepad++ - Editor de texto

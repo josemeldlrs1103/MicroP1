@@ -1,11 +1,16 @@
-locals
-.model small
-.stack 100h
-.data
+.model small 									;Declaración de modelo
+.data 											;Inicia segmento de datos
+	;Variables usadas para menú y validación
+	Opc1 	  DB	'1-Generar UUID',10,13,'$'
+	Opc2 	  DB	'2-Validar UUID',10,13,'$'
+	Opc3	  DB	'3-Cerrar programa',10,13,'$'
+	EntNV	  DB	'No se reconce la entrada, intente de nuevo',10,13,'$'
+	Instruc2  DB	'Ingrese un UUID para validar; Escribir en mayusculas: ',10,13,'$'
+	NLinea    DB	10,13,'$'
+	Aceptar   DB	'Identificador UUID aceptado',10,13,'$'
+	Anular    DB	'Caracter no permitido en UUID',10,13,'$'
+	;Variables usadas para generador
 	TextoFinal	db	10,13,'Fin del programa.',10,13,'Pulsa una tecla para cerrar.$'
-	;UUID Vars
-	;UUID		db	40	dup ('$')
-				   ;8               -  4        - [1]3         -[8-b]3      -  12
 	UUID		db	1,2,3,4,5,6,7,8,'-',1,2,3,4,'-',1,10,12,13,'-',11,1,2,3,'-',1,2,3,4,5,6,7,8,9,10,11,12,'$$$$'
 	uuid_index	dw	0
 	uuid_size	dw	36
@@ -46,39 +51,189 @@ locals
 	times_ dw	0
 	test_text db 10,13,'texto de prueba',10,13,'$'
 	texto_emerg db 10,13,'Salida de emergencia',10,13,'$'
+.stack 100h
 .code
-	main:
-	;Load Data segment
-		mov ax, @data
-		mov ds, ax
-	;Begin main code
-		
-		;prueba masewal begin
-		mov ah, 00h		;system timer on cx:dx
-		int 1ah
-		mov sysTim, dx
-		EsperaCambioTick:
-		int 1ah
-		cmp sysTim, dx
-		je EsperaCambioTick
-		;prueba masewal end
-		;prueba masewal2 begin
-		;mov ah, 2ch
-		;int 21h
-		;xor dh, dh
-		;mov cent_i, dl
-		;EsperaCambioCent:
-		;int 21h
-		;cmp cent_i, dl
-		;je EsperaCambioCent
-		;prueba masewal2 end
-		
-		call GenUUID
-		mov dx, offset UUID
-		call PrintArrayDX
-		
-	;Final
-		call Final
+Programa:
+	;Inicialización del programa
+	MOV AX, @Data 								;Obtener dirección del inicio de segmento de datos
+	MOV DS, AX									;Inicializa segmento de datos
+Menu:
+	;Impresión de menú principal
+	MOV DX, OFFSET Opc1
+	MOV AH, 09h
+	INT 21h
+	MOV DX, OFFSET Opc2
+	INT 21h
+	MOV DX, OFFSET Opc3
+	INT 21h
+	;Lectura de opción elegida
+	XOR AX, AX									;Limpieza de registro AX
+	MOV AH, 01h
+	INT 21h
+	CMP AL,31h
+	JE Generar									;Salto a sección generador
+	CMP AL,32h
+	JE Validar									;Salto a sección validador
+	CMP AL,33h
+	JE Salto1									;Salto a salida del programa
+	MOV AH, 09h
+	MOV DX, OFFSET EntNV						;Opción no reconocida, desplegar el menú de nuevo
+	INT 21h
+	JMP Menu
+
+Generar:
+	MOV DX, OFFSET NLinea
+	MOV AH, 09h
+	INT 21h
+	JMP SaltoAux1
+	
+Salto1:
+	JMP Salto2
+	
+Validar:										;Procedimiento validación de identificador UUID
+	MOV DX, OFFSET NLinea
+	MOV AH, 09h
+	INT 21h
+	MOV DX, OFFSET Instruc2
+	INT 21H
+	XOR CX,CX
+	MOV CX, 08h
+	CALL ValIn
+	MOV AH, 01h
+	INT 21h
+	CMP AL,2DH
+	JNE Salto3
+	XOR CX,CX
+	MOV CX, 04h
+	CALL ValIn
+	MOV AH, 01h
+	INT 21h
+	CMP AL,2Dh
+	JNE Salto3
+	MOV AH, 01h
+	INT 21h
+	CMP AL,31h
+	JNE Salto3
+	XOR CX,CX
+	MOV CX, 03h
+	CALL ValIn
+	MOV AH, 01h
+	INT 21h
+	CMP AL,2Dh
+	JNE Salto3
+	CALL ValG2
+	XOR CX,CX
+	MOV CX, 03h
+	CALL ValIn
+	MOV AH, 01h
+	INT 21h
+	CMP AL,2Dh
+	JNE Cancelar
+	XOR CX,CX
+	MOV CX, 0ch
+	CALL ValIn
+	MOV AH,09h
+	MOV DX, OFFSET NLinea
+	INT 21h
+	MOV DX, OFFSET Aceptar
+	INT 21h
+	XOR AX,AX
+	XOR BX,BX
+	XOR CX,CX
+	XOR DX,DX
+	JMP Menu
+
+SaltoAux1:
+	JMP SaltoAux2
+	
+Salto2:
+	JMP Salida
+
+Salto5:
+	JMP Menu	
+	
+Salto3:
+	JMP Cancelar	
+	
+ValIn PROC NEAR									;Ciclo para evaluación de caracteres según ER
+	Aux:
+	JMP LectIn
+	RepCiclo:
+		LOOP LectIn
+		JMP FinProc
+	LectIn:
+		MOV AH, 01h
+		INT 21h
+		MOV AH, 0h
+		SUB AL, 30h
+		CMP AL, 0h
+		JL Cancelar
+		CMP AL,09h
+		JLE RepCiclo
+		SUB AL, 11h
+		CMP AL, 0h
+		JL Cancelar
+		CMP AL, 05h
+		JLE RepCiclo
+		CMP AL,05h
+		JG Cancelar
+	FinProc:
+	XOR CX,CX
+	ret
+ValIn ENDP
+
+SaltoAux2:
+	JMP SaltoAux3
+
+ValG2 PROC NEAR
+	MOV AH, 01h
+	INT 21h
+	CMP AL,38h
+	JE EntVal
+	CMP AL,39h
+	JE EntVal
+	CMP AL,41h
+	JE EntVal
+	CMP AL,42h
+	JE EntVal
+	JMP Cancelar
+	EntVal:
+	ret
+ValG2 ENDP
+
+Cancelar:										;Saltar al menú en caso de caracteres no aceptados
+	MOV DX, OFFSET NLinea
+	MOV AH, 09h
+	INT 21h
+	MOV DX, OFFSET Anular 
+	INT 21h
+	JMP Menu
+
+Salto4:
+	JMP Salto5
+
+Salida:	
+	;Finalización del programa
+	MOV AH, 4Ch
+	INT 21h	
+
+SaltoAux3:
+	;prueba masewal begin
+	mov ah, 00h		;system timer on cx:dx
+	int 1ah
+	mov sysTim, dx
+	EsperaCambioTick:
+	int 1ah
+	cmp sysTim, dx
+	je EsperaCambioTick
+	call GenUUID
+	mov dx, offset UUID
+	call PrintArrayDX
+	MOV AH, 09h
+	MOV DX, OFFSET NLinea
+	INT 21h
+	JMP Salto4
+
 GenUUID proc near
 		;8-4-[1]3-[8-b]3-12
 		;Generate UUID
@@ -294,12 +449,6 @@ GetDateTimeNumber proc near
 		mov ah, 00h		;system timer on cx:dx
 		int 1ah
 		mov sub_n, dl
-		;debug4
-		;xor dh, dh
-		;mov Num, dx
-		;mov Char, 't'
-		;call PrintNumIlLine
-		;debug4
 		call Multiplicacion
 	;3rd Multiply Phase
 		mov dx, uuid_index
@@ -351,12 +500,6 @@ ResetRes proc near
 		ret
 ResetRes endp
 Multiplicacion proc near
-		;debug2
-		;mov ah, 2h
-		;mov dl, '#'
-		;int 21h
-		;int 21h
-		;debug2
 		xor ax, ax ;se usara para div y mul
 		xor bx, bx ;se usara para comparaciones y mov
 		mov carry, 0
@@ -373,11 +516,6 @@ Multiplicacion proc near
 		;producto en ax (ah:al)
 		add ax, carry 
 		mov prod, ax
-		;debug1
-		;mov Num, ax
-		;call PrintNumIlLine
-		;mov ax, Num
-		;debug1
 		xor dx, dx
 		mov bx, 10
 		div bx	;conciente al, residuo ah (necesita revisar)
@@ -397,11 +535,6 @@ Multiplicacion proc near
 		je while_carry_end
 		mov ax, carry
 		mov bl, 10
-		;debug3
-		;mov Num, ax
-		;call PrintNumIlLine
-		;mov ax, Num
-		;debug3
 		div bl ;cociente al, residuo ah
 		mov [di], ah
 		xor ah, ah
@@ -521,18 +654,7 @@ PrintNumIlLine proc near
 		int 21h
 		mov dl, 13
 		int 21h
-		
 		call LoadRegs
 		ret
-PrintNumIlLine endp
-;Debug proc end
-Final proc near
-		;mov dx, offset TextoFinal
-		;mov ah, 09h
-		;int 21h
-		;mov ah, 1h
-		;int 21h
-		mov ah, 4ch 
-		int 21h
-Final endp
-end main
+PrintNumIlLine endp	
+END Programa
